@@ -1,0 +1,19 @@
+def prepare_stock_prediction_data(stock_data, news_data):
+    """
+    Prepare both stock and news data for the StockPredictor class
+    """
+    # Process news data
+    news_processor = NewsPreprocessor(news_data)
+    daily_sentiment = news_processor.process_news_data()
+    
+    # Ensure stock data index is datetime
+    stock_data.index = pd.to_datetime(stock_data.index)
+    
+    # Align the sentiment data with stock data dates
+    aligned_sentiment = pd.Series(index=stock_data.index, dtype=float)
+    aligned_sentiment.loc[daily_sentiment.index] = daily_sentiment
+    
+    # Forward fill any missing values and fill remaining NaNs with 0
+    aligned_sentiment = aligned_sentiment.fillna(method='ffill').fillna(0)
+    
+    return stock_data, aligned_sentiment
