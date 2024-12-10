@@ -1,0 +1,79 @@
+class NewsPreprocessor:
+    def __init__(self, news_data):
+        """
+        Initialize the NewsPreprocessor with raw news data
+        
+        Parameters:
+        news_data (pd.DataFrame): DataFrame containing news data with columns 
+                                'Date', 'Title', 'URL', 'sentiment', 'confidence'
+        """
+        self.news_data = news_data
+        
+    def clean_dates(self):
+        """
+        Convert dates to datetime format and sort the dataframe
+        """
+        # Convert to datetime with specific format
+        self.news_data['Date'] = pd.to_datetime(self.news_data['Date'], format='%d-%m-%Y')
+        
+        # Sort by date
+        self.news_data = self.news_data.sort_values(by='Date')
+        
+        # Set date as index
+        self.news_data.set_index('Date', inplace=True)
+        
+        return self.news_data
+    
+    def process_sentiment_scores(self):
+        """
+        Process existing sentiment scores weighted by confidence
+        """
+        # Multiply sentiment by confidence to get weighted sentiment
+        self.news_data['sentiment'] = self.news_data['sentiment'].map({'Positive': 1, 'Negative': -1})
+
+        # Ensure confidence is numeric
+        self.news_data['confidence'] = pd.to_numeric(self.news_data['confidence'], errors='coerce')
+
+        # Drop rows with invalid data
+        self.news_data.dropna(subset=['sentiment', 'confidence'], inplace=True)
+
+        # Multiply sentiment by confidence to get weighted sentiment
+        self.news_data['weighted_sentiment'] = self.news_data['sentiment'] * self.news_data['confidence']
+        
+        return self.news_data
+    
+    def aggregate_daily_sentiment(self):
+        """
+        Aggregate sentiment scores by date, handling multiple headlines per day
+        """
+        # Calculate daily weighted average sentiment using confidence as weights
+        daily_sentiment = self.news_data.groupby(level=0).agg({
+            'weighted_sentiment': 'mean',
+            'confidence': 'mean'
+        })
+        
+        # Get final daily sentiment score
+        daily_sentiment = daily_sentiment['weighted_sentiment']
+        
+        # Forward fill missing values (days without news)
+        daily_sentiment = daily_sentiment.fillna(method='ffill')
+        
+        # If there are still any NaN values at the start, fill with 0 (neutral)
+        daily_sentiment = daily_sentiment.fillna(0)
+        
+        return daily_sentiment
+    
+    def process_news_data(self):
+        """
+        Complete pipeline to process news data
+        """
+        # Clean and sort dates
+        self.clean_dates()
+        
+        # Process sentiment scores
+        self.process_sentiment_scores()
+        
+        # Aggregate to daily sentiment
+        daily_sentiment = self.aggregate_daily_sentiment()
+        
+        return daily_sentiment
