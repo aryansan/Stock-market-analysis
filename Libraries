@@ -9,3 +9,4 @@ from ta.trend import SMAIndicator, EMAIndicator, MACD
 from ta.momentum import RSIIndicator
 from ta.volatility import BollingerBands
 from datetime import datetime
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
